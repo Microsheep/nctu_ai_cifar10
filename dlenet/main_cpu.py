@@ -33,12 +33,12 @@ class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
         self.pool = nn.MaxPool2d(2, 2)
-        self.conv1 = nn.Conv2d(3, 6, 5)
-        self.conv2 = nn.Conv2d(6, 16, 5)
-        self.conv3 = nn.Conv2d(16, 32, 3)
-        self.fc1 = nn.Linear(32*5*5, 120)
-        self.fc2 = nn.Linear(120, 84)
-        self.fcf = nn.Linear(84, 10)
+        self.conv1 = nn.Conv2d(3, 16, 5)
+        self.conv2 = nn.Conv2d(16, 32, 5)
+        self.conv3 = nn.Conv2d(32, 64, 3)
+        self.fc1 = nn.Linear(64*5*5, 800)
+        self.fc2 = nn.Linear(800, 200)
+        self.fcf = nn.Linear(200, 10)
 
     def forward(self, x):
         x = F.relu(self.conv1(x))
@@ -48,7 +48,7 @@ class Net(nn.Module):
         x = F.relu(self.conv3(x))
         x = self.pool(x)
 
-        x = x.view(-1, 32*5*5)
+        x = x.view(-1, 64*5*5)
 
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
@@ -58,14 +58,14 @@ class Net(nn.Module):
 
 load = True
 if load:
-    checkpoint = torch.load('./net_50_epoch.data')
+    checkpoint = torch.load('./net_200_epoch.data')
     net = checkpoint['net'].cpu()
 else:
     net = Net()
 
     criterion = nn.CrossEntropyLoss()
 
-    MAX_EP = 50
+    MAX_EP = 200
     start_lr = 0.01
 
     for epoch in range(MAX_EP):  # loop over the dataset multiple times

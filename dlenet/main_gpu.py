@@ -33,12 +33,12 @@ class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
         self.pool = nn.MaxPool2d(2, 2)
-        self.conv1 = nn.Conv2d(3, 6, 5)
-        self.conv2 = nn.Conv2d(6, 16, 5)
-        self.conv3 = nn.Conv2d(16, 32, 3)
-        self.fc1 = nn.Linear(32*5*5, 120)
-        self.fc2 = nn.Linear(120, 84)
-        self.fcf = nn.Linear(84, 10)
+        self.conv1 = nn.Conv2d(3, 16, 5)
+        self.conv2 = nn.Conv2d(16, 32, 5)
+        self.conv3 = nn.Conv2d(32, 64, 3)
+        self.fc1 = nn.Linear(64*5*5, 800)
+        self.fc2 = nn.Linear(800, 200)
+        self.fcf = nn.Linear(200, 10)
 
     def forward(self, x):
         x = F.relu(self.conv1(x))
@@ -48,7 +48,7 @@ class Net(nn.Module):
         x = F.relu(self.conv3(x))
         x = self.pool(x)
 
-        x = x.view(-1, 32*5*5)
+        x = x.view(-1, 64*5*5)
 
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
@@ -58,14 +58,15 @@ class Net(nn.Module):
 
 load = True
 if load:
-    checkpoint = torch.load('./net_50_epoch.data')
-    net = checkpoint['net'].cpu()
+    checkpoint = torch.load('./net_200_epoch.data')
+    net = checkpoint['net']
 else:
     net = Net()
+    net.cuda()
 
     criterion = nn.CrossEntropyLoss()
 
-    MAX_EP = 50
+    MAX_EP = 200
     start_lr = 0.01
 
     for epoch in range(MAX_EP):  # loop over the dataset multiple times
@@ -82,7 +83,7 @@ else:
             inputs, labels = data
 
             # wrap them in Variable
-            inputs, labels = Variable(inputs), Variable(labels)
+            inputs, labels = Variable(inputs.cuda()), Variable(labels.cuda())
 
             # zero the parameter gradients
             optimizer.zero_grad()
@@ -96,8 +97,8 @@ else:
             # print statistics
             train_loss += loss.data[0]
             _, predicted = torch.max(outputs.data, 1)
-            total += labels.size(0)
-            correct += predicted.eq(labels.data).cpu().sum()
+            total += labels.cuda().size(0)
+            correct += predicted.eq(labels.cuda().data).cpu().sum()
 
         print('%d Loss: %.3f | Acc: %.3f%% (%d/%d)' % (epoch+1, train_loss/(batch_idx+1), 100.*correct/total, correct, total))
 
@@ -116,10 +117,10 @@ correct = 0
 total = 0
 for data in testloader:
     images, labels = data
-    outputs = net(Variable(images))
+    outputs = net(Variable(images.cuda()))
     _, predicted = torch.max(outputs.data, 1)
     total += labels.size(0)
-    correct += (predicted == labels).sum()
+    correct += (predicted == labels.cuda()).sum()
 
 print('Accuracy of the network on the 10000 test images: %d %%' % (
     100 * correct / total))
@@ -128,9 +129,9 @@ class_correct = list(0. for i in range(10))
 class_total = list(0. for i in range(10))
 for data in testloader:
     images, labels = data
-    outputs = net(Variable(images))
+    outputs = net(Variable(images.cuda()))
     _, predicted = torch.max(outputs.data, 1)
-    c = (predicted == labels).squeeze()
+    c = (predicted == labels.cuda()).squeeze()
     for i in range(4):
         label = labels[i]
         class_correct[label] += c[i]
